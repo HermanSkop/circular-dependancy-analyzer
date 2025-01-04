@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Directory Upload</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="upload-container">
+    <h1>Upload Directory</h1>
+    <div class="message" th:if="${successMessage}">
+        <p class="success-message" th:text="${successMessage}"></p>
+    </div>
+    <div class="message" th:if="${errorMessage}">
+        <p class="error-message" th:text="${errorMessage}"></p>
+    </div>
+
+    <form action="/upload-directory" method="post" enctype="multipart/form-data">
+        <div class="file-input">
+            <input type="file" id="directory" name="files" webkitdirectory directory multiple>
+            <label for="directory">Select a directory</label>
+        </div>
+        <button type="submit" id="uploadButton">Upload</button>
+    </form>
+</div>
+
+<script src="/js/script.js"></script>
+</body>
+</html>
