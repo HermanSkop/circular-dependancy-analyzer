@@ -1,0 +1,61 @@
+options {
+    STATIC = false;
+}
+
+
+PARSER_BEGIN(Parser)
+package com.example.dependencyanalyzer;
+import java.util.ArrayList;import java.util.List;
+    public class Parser {
+        private List<String> imports = new ArrayList<>();
+
+        public List<String> getImports() {
+            return imports;
+        }
+
+        private void addImport(String importName) {
+            imports.add(importName);
+        }
+    }
+
+PARSER_END(Parser)
+
+SKIP : {
+    < ~[] >
+}
+
+SPECIAL_TOKEN : {
+    < DIGIT: (["0"-"9"])+ > |
+    < LETTER: (["a"-"z", "A"-"Z"]) > |
+    < KEYWORD: "import" | "from">
+}
+
+<DEFAULT> SKIP : {
+    < BEGIN_IMPORT: <KEYWORD>(" ")+> : IMPORT
+}
+
+<IMPORT> TOKEN : {
+    < MODULE: (<LETTER> | "_") (<LETTER> | <DIGIT> | "_" | ".")* > |
+    < EOM: "\n" | "\r" | "\r\n" | "," | " "> : DEFAULT
+
+}
+
+<IMPORT> SKIP : {
+    "\t"
+}
+void Start() :
+{}
+{
+    (Import())*
+    <EOF>
+}
+
+void Import() :
+{}
+{
+    <MODULE>
+    {
+        addImport(token.image.replace('.', '/'));
+    }
+    <EOM>
+}

@@ -20,3 +20,8 @@ document.getElementById("directory").addEventListener("change", function () {
     label.textContent = `${filteredFiles.length} valid files selected`;
     this.files = filteredFiles;
 });
+document.getElementById("analyzeButton").addEventListener("click", function () {
+    fetch("/analyze", {
+        method: "POST",
+    })
+});

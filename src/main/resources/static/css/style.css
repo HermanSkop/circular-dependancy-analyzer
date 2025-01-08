@@ -54,6 +54,7 @@ button {
     border-radius: 5px;
     cursor: pointer;
     transition: background 0.3s ease;
+    margin: 5px 0;
 }
 
 button:hover {
@@ -70,4 +71,14 @@ button:hover {
     color: #dc3545;
     font-size: 14px;
     margin-bottom: 15px;
+}
+
+#analyzeButton{
+    background-color: #d6ae08;
+}
+
+#analysisResults {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #28a745;
 }
