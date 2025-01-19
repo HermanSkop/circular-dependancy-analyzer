@@ -7,6 +7,7 @@ PARSER_BEGIN(Parser)
 package com.example.dependencyanalyzer;
 import java.util.ArrayList;import java.util.List;
     public class Parser {
+        private String module;
         private List<String> imports = new ArrayList<>();
 
         public List<String> getImports() {
@@ -17,27 +18,44 @@ import java.util.ArrayList;import java.util.List;
             imports.add(importName);
         }
     }
-
 PARSER_END(Parser)
 
 SKIP : {
-    < ~[] >
+< ~[] >
 }
 
 SPECIAL_TOKEN : {
     < DIGIT: (["0"-"9"])+ > |
-    < LETTER: (["a"-"z", "A"-"Z"]) > |
-    < KEYWORD: "import" | "from">
+    < LETTER: (["a"-"z", "A"-"Z"]) >
 }
 
 <DEFAULT> SKIP : {
-    < BEGIN_IMPORT: <KEYWORD>(" ")+> : IMPORT
+    < BEGIN_MODULE: "from" (" ")+> : FROM |
+    < BEGIN_TARGET: "import" (" ")+> : IMPORT
+}
+
+<DEFAULT> TOKEN : {
+    < BEGIN_COMMENT: "\"\"\""> : COMMENT
+}
+
+<COMMENT> TOKEN : {
+    < ANY:  ~[] > |
+    < END_COMMENT: "\"\"\""> : DEFAULT
+
+}
+
+<FROM> SKIP : {
+    < BEGIN_IMPORT: "import" (" ")+> : IMPORT
+}
+
+<FROM> TOKEN : {
+    < MODULE: (<LETTER> | "_") (<LETTER> | <DIGIT> | "_" | ".")* > |
+    < EOM: (" "|"\t")+>
 }
 
 <IMPORT> TOKEN : {
-    < MODULE: (<LETTER> | "_") (<LETTER> | <DIGIT> | "_" | ".")* > |
-    < EOM: "\n" | "\r" | "\r\n" | "," | " "> : DEFAULT
-
+    < TARGET: (<LETTER> | "_") (<LETTER> | <DIGIT> | "_" | ".")* > |
+    < EOT: "\n" | "\r" | "\r\n" | "," | " "> : DEFAULT
 }
 
 <IMPORT> SKIP : {
@@ -46,16 +64,36 @@ SPECIAL_TOKEN : {
 void Start() :
 {}
 {
-    (Import())*
+    (Comment() | From() | Import())*
     <EOF>
 }
-
-void Import() :
+void Comment() :
+{}
+{
+    <BEGIN_COMMENT>
+    (<ANY>)*
+    <END_COMMENT>
+}
+void From() :
 {}
 {
     <MODULE>
     {
-        addImport(token.image.replace('.', '/'));
+        module = token.image.replace('.', '/');
     }
     <EOM>
+    <TARGET>
+    {
+        addImport("@" + module + "/" + "|"+token.image+"|");
+    }
+    <EOT>
+}
+void Import() :
+{}
+{
+    <TARGET>
+    {
+        addImport("$" + token.image.replace('.', '/'));
+    }
+    <EOT>
 }

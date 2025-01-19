@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -52,11 +53,30 @@ public class MainController {
             return "redirect:/?error=" + e.getMessage();
         }
     }
+
     private String analyzeDirectory(List<MultipartFile> files) throws IOException {
-        ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
         List<Future<Map<String, List<String>>>> futures = new ArrayList<>();
         List<String> errors = new LinkedList<>();
 
+        Map<String, List<String>> fileImports;
+        List<String> matchingKeys;
+        try {
+            fileImports = fetchImports(files, futures);
+            matchingKeys = fileImports.entrySet().stream()
+                    .filter(entry -> entry.getValue().stream().anyMatch(fileImports.keySet()::contains))
+                    .map(Map.Entry::getKey)
+                    .toList();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "redirect:/?error=Failed to process files: " + e.getMessage();
+        }
+        return matchingKeys.isEmpty() ? "No circular dependencies found" : "Circular dependencies found in files: " + matchingKeys;
+    }
+
+    private Map<String, List<String>> fetchImports(List<MultipartFile> files, List<Future<Map<String, List<String>>>> futures) {
+        ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         for (MultipartFile file : files) {
             Future<Map<String, List<String>>> future = executorService.submit(() -> {
                 try {
@@ -72,19 +92,19 @@ public class MainController {
             futures.add(future);
         }
 
-        Map<String, List<String>> fileImports = new HashMap<>();
+        Map<String, List<String>> fileImports = null;
         for (Future<Map<String, List<String>>> future : futures) {
             try {
-                fileImports.putAll(future.get());
-            } catch (Exception e) {
+                fileImports = new HashMap<>(future.get());
+            } catch (ExecutionException e) {
                 executorService.shutdown();
-                e.printStackTrace();
-                return "redirect:/?error=Failed to process files: " + e.getMessage();
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
+            logger.info(fileImports.toString());
         }
-        logger.info(fileImports.toString());
-        executorService.shutdown();
-        return "Everything is fine";
+        return fileImports;
     }
 
     private List<MultipartFile> validateFiles(List<MultipartFile> files) throws IOException {
