@@ -20,6 +20,12 @@ public class ParserService {
         for (Map.Entry<String, List<String>> entry : fileImports.entrySet()) {
             findCircularDependenciesInModule(fileImports, entry.getKey(), entry.getKey(), circularDependencies, new Stack<>());
         }
+
+        circularDependencies.removeIf(stack ->
+                circularDependencies.stream()
+                        .filter(stack2 -> stack != stack2)
+                        .anyMatch(stack2 -> new HashSet<>(stack).equals(new HashSet<>(stack2)))
+        );
         return circularDependencies;
     }
 
