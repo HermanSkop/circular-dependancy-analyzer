@@ -3,9 +3,7 @@ package com.example.dependencyanalyzer;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Logger;
 
 @Service
@@ -17,18 +15,30 @@ public class ParserService {
         return parser.getImports();
     }
 
-    public List<String> findCircularDependencies(Map<String, List<String>> fileImports) {
-        List<String> circularDependencies = new LinkedList<>();
+    public List<Stack<String>> findCircularDependencies(Map<String, List<String>> fileImports) {
+        List<Stack<String>> circularDependencies = new LinkedList<>();
         for (Map.Entry<String, List<String>> entry : fileImports.entrySet()) {
-            String fileName = entry.getKey();
-            List<String> imports = entry.getValue();
-            for (String importedFile : imports) {
-                if (fileImports.containsKey(importedFile) && fileImports.get(importedFile).contains(fileName)) {
-                    circularDependencies.add("Circular dependency found between " + fileName + " and " + importedFile);
-                }
-            }
+            findCircularDependenciesInModule(fileImports, entry.getKey(), entry.getKey(), circularDependencies, new Stack<>());
         }
         return circularDependencies;
+    }
+
+    private void findCircularDependenciesInModule(Map<String, List<String>> fileImports, String rootModulePath, String modulePath,
+                                                  List<Stack<String>> circularDependencies, Stack<String> visitedModules) {
+        visitedModules.add(modulePath);
+        List<String> imports = fileImports.get(modulePath);
+        for (String importedFile : imports) {
+            if (!fileImports.containsKey(importedFile))
+                continue;
+            if (Objects.equals(rootModulePath, importedFile)) {
+                circularDependencies.add(visitedModules);
+            } else {
+                if (visitedModules.contains(importedFile))
+                    continue;
+
+                findCircularDependenciesInModule(fileImports, rootModulePath, importedFile, circularDependencies, (Stack<String>) visitedModules.clone());
+            }
+        }
     }
 
     /**
@@ -44,11 +54,14 @@ public class ParserService {
             List<String> moduleImportsList = new LinkedList<>();
 
             for (String importedFile : imports) {
+                String modulePath = importedFile;
                 if (fileImports.keySet().stream().noneMatch(importedFile::endsWith)) {
-                    logger.info("Truncated target: " + importedFile);
-                    String modulePath = truncateTarget(importedFile);
-                    moduleImportsList.add(modulePath);
+                    modulePath = truncateTarget(importedFile);
+                    if (fileImports.keySet().stream().noneMatch(modulePath::endsWith))
+                        continue;
+
                 }
+                moduleImportsList.add(modulePath);
             }
             moduleImports.put(fileName, moduleImportsList);
         }

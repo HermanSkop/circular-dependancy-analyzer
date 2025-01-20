@@ -46,7 +46,7 @@ public class MainController {
         try {
             validateFiles(files);
 
-            List<String> analysisResult = analyzeDirectory(files);
+            List<Stack<String>> analysisResult = analyzeDirectory(files);
             model.addAttribute("analysisResult", analysisResult);
 
             return "index";
@@ -58,9 +58,9 @@ public class MainController {
     }
 
 
-    private List<String> analyzeDirectory(List<MultipartFile> files) throws IOException {
+    private List<Stack<String>> analyzeDirectory(List<MultipartFile> files) throws IOException {
         List<Future<Map<String, List<String>>>> futures = new ArrayList<>();
-        List<String> errors;
+        List<Stack<String>> errors;
 
         Map<String, List<String>> fileImports;
         try {
