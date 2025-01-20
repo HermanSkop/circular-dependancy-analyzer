@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -43,36 +42,37 @@ public class MainController {
     }
 
     @PostMapping("/upload-directory")
-    public String handleDirectoryUpload(@RequestParam("files") List<MultipartFile> files) {
+    public String handleDirectoryUpload(@RequestParam("files") List<MultipartFile> files, Model model) {
         try {
             validateFiles(files);
 
-            return "redirect:/?analysisResult=" + analyzeDirectory(files);
+            List<String> analysisResult = analyzeDirectory(files);
+            model.addAttribute("analysisResult", analysisResult);
+
+            return "index";
         } catch (IOException e) {
             e.printStackTrace();
-            return "redirect:/?error=" + e.getMessage();
+            model.addAttribute("errorMessage", e.getMessage());
+            return "index";
         }
     }
 
-    private String analyzeDirectory(List<MultipartFile> files) throws IOException {
 
+    private List<String> analyzeDirectory(List<MultipartFile> files) throws IOException {
         List<Future<Map<String, List<String>>>> futures = new ArrayList<>();
-        List<String> errors = new LinkedList<>();
+        List<String> errors;
 
         Map<String, List<String>> fileImports;
-        List<String> matchingKeys;
         try {
             fileImports = fetchImports(files, futures);
-            matchingKeys = fileImports.entrySet().stream()
-                    .filter(entry -> entry.getValue().stream().anyMatch(fileImports.keySet()::contains))
-                    .map(Map.Entry::getKey)
-                    .toList();
+            fileImports = parserService.resolveTargetFiles(fileImports);
+            errors = parserService.findCircularDependencies(fileImports);
 
         } catch (Exception e) {
             e.printStackTrace();
-            return "redirect:/?error=Failed to process files: " + e.getMessage();
+            throw new IOException("Failed to analyze directory", e);
         }
-        return matchingKeys.isEmpty() ? "No circular dependencies found" : "Circular dependencies found in files: " + matchingKeys;
+        return errors;
     }
 
     private Map<String, List<String>> fetchImports(List<MultipartFile> files, List<Future<Map<String, List<String>>>> futures) {
@@ -81,7 +81,9 @@ public class MainController {
             Future<Map<String, List<String>>> future = executorService.submit(() -> {
                 try {
                     Map<String, List<String>> map = new HashMap<>();
-                    map.put(file.getOriginalFilename(), parserService.parse(file.getInputStream()));
+                    String preparedPath = truncateExtension(truncateRoot(Objects.requireNonNull(file.getOriginalFilename())));
+
+                    map.put(preparedPath, parserService.parse(file.getInputStream()));
                     return map;
                 } catch (IOException e) {
                     throw new IOException("Failed to read file: " + file.getOriginalFilename());
@@ -92,22 +94,21 @@ public class MainController {
             futures.add(future);
         }
 
-        Map<String, List<String>> fileImports = null;
+        Map<String, List<String>> fileImports = new HashMap<>();
         for (Future<Map<String, List<String>>> future : futures) {
             try {
-                fileImports = new HashMap<>(future.get());
+                fileImports.putAll(future.get());
             } catch (ExecutionException e) {
                 executorService.shutdown();
                 throw new RuntimeException(e);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            logger.info(fileImports.toString());
         }
         return fileImports;
     }
 
-    private List<MultipartFile> validateFiles(List<MultipartFile> files) throws IOException {
+    private void validateFiles(List<MultipartFile> files) throws IOException {
         Iterator<MultipartFile> iterator = files.iterator();
         while (iterator.hasNext()) {
             MultipartFile file = iterator.next();
@@ -124,7 +125,16 @@ public class MainController {
                 throw new IOException("Directory contains more than one allowed file type.");
             }
         }
-        return files;
+    }
+
+    private String truncateRoot(String path) {
+        int index = path.indexOf('/');
+        return (index != -1) ? path.substring(index + 1) : path;
+    }
+
+    private String truncateExtension(String path) {
+        int index = path.lastIndexOf('.');
+        return (index != -1) ? path.substring(0, index) : path;
     }
 
 }

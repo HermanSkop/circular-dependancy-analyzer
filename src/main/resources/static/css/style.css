@@ -6,6 +6,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-direction: column;
     height: 100vh;
 }
 
@@ -77,8 +78,27 @@ button:hover {
     background-color: #d6ae08;
 }
 
-#analysisResults {
-    margin-top: 20px;
-    font-size: 14px;
-    color: #28a745;
+.analysis-panel {
+    width: 80vw;
+    margin-top: 30px;
+    padding: 20px;
+    border-radius: 10px;
+    background-color: #555;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    color: #fff;
+    text-align: left;
+    max-width: 1200px;
+    overflow-wrap: break-word;
 }
+
+.analysis-panel h2 {
+    font-size: 20px;
+    margin-bottom: 15px;
+    color: #fff;
+}
+
+#analysisResults {
+    font-size: 16px;
+    color: #da5151;
+}
+

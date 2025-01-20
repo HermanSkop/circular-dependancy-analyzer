@@ -7,11 +7,8 @@
 <body>
 <div class="upload-container">
     <h1>Upload Directory</h1>
-    <div class="message" th:if="${successMessage}">
+    <div style="text-align: left;" class="message" th:if="${successMessage}">
         <p class="success-message" th:text="${successMessage}"></p>
-    </div>
-    <div class="message" th:if="${errorMessage}">
-        <p class="error-message" th:text="${errorMessage}"></p>
     </div>
 
     <form action="/upload-directory" method="post" enctype="multipart/form-data">
@@ -21,7 +18,15 @@
         </div>
         <button type="submit" id="uploadButton">Upload</button>
     </form>
-    <div id="analysisResults" th:text="${analysisResult}"></div>
+</div>
+<div class="analysis-panel">
+    <h2>Analysis Results</h2>
+    <div th:if="${analysisResult}" id="analysisResults">
+        <p th:each="issue : ${analysisResult}" th:text="${issue}"></p>
+    </div>
+    <div style="color: #28a745" th:unless="${analysisResult}">
+        No issues found!
+    </div>
 </div>
 
 <script src="/js/script.js"></script>

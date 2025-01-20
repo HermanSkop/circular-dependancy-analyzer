@@ -84,7 +84,7 @@ void From() :
     <EOM>
     <TARGET>
     {
-        addImport("@" + module + "/" + "|"+token.image+"|");
+        addImport(module + "/" +token.image);
     }
     <EOT>
 }
@@ -93,7 +93,7 @@ void Import() :
 {
     <TARGET>
     {
-        addImport("$" + token.image.replace('.', '/'));
+        addImport(token.image.replace('.', '/'));
     }
     <EOT>
 }
