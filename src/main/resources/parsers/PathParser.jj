@@ -55,12 +55,10 @@ SPECIAL_TOKEN : {
 
 <IMPORT> TOKEN : {
     < TARGET: (<LETTER> | "_") (<LETTER> | <DIGIT> | "_" | ".")* > |
-    < EOT: "\n" | "\r" | "\r\n" | "," | " "> : DEFAULT
+    < EOT: "\n" | "\r" | "\r\n" | " "> : DEFAULT |
+    < NEXT: ","(" ")*>
 }
 
-<IMPORT> SKIP : {
-    "\t"
-}
 void Start() :
 {}
 {
@@ -82,11 +80,8 @@ void From() :
         module = token.image.replace('.', '/');
     }
     <EOM>
-    <TARGET>
-    {
-        addImport(module + "/" +token.image);
-    }
-    <EOT>
+    <TARGET>{addImport(module + "/" + token.image);}
+    (<EOT> | <NEXT>Import())+
 }
 void Import() :
 {}
@@ -95,5 +90,5 @@ void Import() :
     {
         addImport(token.image.replace('.', '/'));
     }
-    <EOT>
+    (<EOT> | <NEXT>Import())+
 }
