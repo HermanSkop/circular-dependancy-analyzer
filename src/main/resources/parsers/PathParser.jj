@@ -29,12 +29,12 @@ SPECIAL_TOKEN : {
     < LETTER: (["a"-"z", "A"-"Z"]) >
 }
 
-<DEFAULT> SKIP : {
+SKIP : {
     < BEGIN_MODULE: "from" (" ")+> : FROM |
     < BEGIN_TARGET: "import" (" ")+> : IMPORT
 }
 
-<DEFAULT> TOKEN : {
+TOKEN : {
     < BEGIN_COMMENT: "\"\"\""> : COMMENT
 }
 
